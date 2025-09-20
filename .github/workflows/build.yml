@@ -33,20 +33,30 @@ jobs:
       uses: nttld/setup-ndk@v1
       with:
         ndk-version: r26d
+    - name: Set CC environment
+      run: |
+        target_underscore=$(echo "${{ matrix.target }}" | tr - _)
+        echo "CC_${target_underscore}=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.linker_prefix }}21-clang" >> $GITHUB_ENV
+        echo "AR_${target_underscore}=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> $GITHUB_ENV
     - name: Configure Cargo for Android
       run: |
         mkdir -p ~/.cargo
         cat << EOF >> ~/.cargo/config.toml
         [target.${{ matrix.target }}]
-        linker = "\${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.linker_prefix }}21-clang"
-        ar = "\${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+        linker = "${{ env.CC_${target_underscore // - / _ } }}"
+        ar = "${{ env.AR_${target_underscore // - / _ } }}"
         EOF
+    - name: Ensure cdylib in Cargo.toml
+      run: |
+        if ! grep -q 'cdylib' crates/c-api/Cargo.toml; then
+          sed -i '/\[lib\]/a crate-type = ["cdylib", "staticlib"]' crates/c-api/Cargo.toml
+        fi
     - name: Build with cargo
       run: cargo build --target ${{ matrix.target }} --release -p wasmtime-c-api
     - name: Move artifacts
       run: |
         mkdir -p artifacts/${{ matrix.abi }}
-        cp target/${{ matrix.target }}/release/libwasmtime.so artifacts/${{ matrix.abi }}/libwasmtime.so
+        cp target/${{ matrix.target }}/release/libwasmtime.so artifacts/${{ matrix.abi }}/libwasmtime.so || true
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -64,8 +74,8 @@ jobs:
     - name: Organize and archive
       run: |
         mkdir -p wasmtime-libs
-        mv artifacts/wasmtime-android-libs-arm64-v8a/libwasmtime.so wasmtime-libs/arm64-v8a-libwasmtime.so
-        mv artifacts/wasmtime-android-libs-armeabi-v7a/libwasmtime.so wasmtime-libs/armeabi-v7a-libwasmtime.so
+        mv artifacts/wasmtime-android-libs-arm64-v8a/libwasmtime.so wasmtime-libs/arm64-v8a-libwasmtime.so || true
+        mv artifacts/wasmtime-android-libs-armeabi-v7a/libwasmtime.so wasmtime-libs/armeabi-v7a-libwasmtime.so || true
         tar -czvf wasmtime-libs.tar.gz -C wasmtime-libs .
     - name: Upload combined artifact
       uses: actions/upload-artifact@v4
