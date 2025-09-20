@@ -33,18 +33,15 @@ jobs:
       uses: nttld/setup-ndk@v1
       with:
         ndk-version: r26d
-    - name: Set CC environment
-      run: |
-        target_underscore=$(echo "${{ matrix.target }}" | tr - _)
-        echo "CC_${target_underscore}=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.linker_prefix }}21-clang" >> $GITHUB_ENV
-        echo "AR_${target_underscore}=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> $GITHUB_ENV
     - name: Configure Cargo for Android
       run: |
+        linker="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.linker_prefix }}21-clang"
+        ar="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
         mkdir -p ~/.cargo
         cat << EOF >> ~/.cargo/config.toml
         [target.${{ matrix.target }}]
-        linker = "${{ env.CC_${target_underscore // - / _ } }}"
-        ar = "${{ env.AR_${target_underscore // - / _ } }}"
+        linker = "$linker"
+        ar = "$ar"
         EOF
     - name: Ensure cdylib in Cargo.toml
       run: |
