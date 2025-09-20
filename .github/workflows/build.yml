@@ -10,8 +10,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Wasmtime
+      uses: actions/checkout@v4
       with:
+        repository: bytecodealliance/wasmtime
         submodules: recursive
     - name: Build with cross
       uses: houseabsolute/actions-rust-cross@v1
@@ -19,4 +21,4 @@ jobs:
         command: build
         target: aarch64-linux-android
         args: "--release -p wasmtime"
-        use-cross: true
+        force-use-cross: true
