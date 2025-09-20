@@ -71,14 +71,22 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         path: artifacts
+    - name: Checkout Wasmtime for headers
+      uses: actions/checkout@v4
+      with:
+        repository: bytecodealliance/wasmtime
+        path: wasmtime_source
     - name: Organize and archive
       run: |
-        mkdir -p wasmtime-libs
-        mv artifacts/wasmtime-android-libs-arm64-v8a/libwasmtime.so wasmtime-libs/arm64-v8a-libwasmtime.so || true
-        mv artifacts/wasmtime-android-libs-armeabi-v7a/libwasmtime.so wasmtime-libs/armeabi-v7a-libwasmtime.so || true
-        tar -czvf wasmtime-libs.tar.gz -C wasmtime-libs .
+        mkdir -p sdk/include
+        mkdir -p sdk/libs/arm64-v8a
+        mkdir -p sdk/libs/armeabi-v7a
+        cp -r wasmtime_source/crates/c-api/include/* sdk/include/
+        mv artifacts/wasmtime-android-libs-arm64-v8a/libwasmtime.so sdk/libs/arm64-v8a/libwasmtime.so || true
+        mv artifacts/wasmtime-android-libs-armeabi-v7a/libwasmtime.so sdk/libs/armeabi-v7a/libwasmtime.so || true
+        tar -czvf wasmtime-android-sdk.tar.gz -C sdk .
     - name: Upload combined artifact
       uses: actions/upload-artifact@v4
       with:
-        name: wasmtime-android-libs
-        path: wasmtime-libs.tar.gz
+        name: wasmtime-android-sdk
+        path: wasmtime-android-sdk.tar.gz
