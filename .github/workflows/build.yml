@@ -33,6 +33,9 @@ jobs:
         ndk-version: r26d
     - name: Install cargo-ndk
       run: cargo install cargo-ndk
+    - name: Set RUSTFLAGS for x86
+      if: matrix.abi == 'x86'
+      run: echo "RUSTFLAGS=-C relocation-model=pic" >> $GITHUB_ENV
     - name: Build with cargo-ndk
       run: cargo ndk -t ${{ matrix.abi }} -o artifacts/${{ matrix.abi }} build --release -p wasmtime-c-api
     - name: Upload artifacts
