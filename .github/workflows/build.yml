@@ -33,10 +33,11 @@ jobs:
       uses: nttld/setup-ndk@v1
       with:
         ndk-version: r26d
-    - name: Configure Cargo for Android
+        - name: Configure Cargo for Android
       run: |
         linker="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.linker_prefix }}21-clang"
         ar="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+        echo "CC_${{ matrix.target }}=$linker" >> $GITHUB_ENV
         mkdir -p ~/.cargo
         cat << EOF >> ~/.cargo/config.toml
         [target.${{ matrix.target }}]
