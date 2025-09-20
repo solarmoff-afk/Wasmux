@@ -33,6 +33,13 @@ jobs:
       uses: nttld/setup-ndk@v1
       with:
         ndk-version: r26d
+    - name: Set CC and AR environment variables
+      run: |
+        target_underscore=$(echo "${{ matrix.target }}" | tr - _)
+        echo "CC_${target_underscore}=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.linker_prefix }}21-clang" >> $GITHUB_ENV
+        echo "AR_${target_underscore}=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> $GITHUB_ENV
+        echo "CFLAGS_${target_underscore}=-I$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include" >> $GITHUB_ENV
+        echo "LDFLAGS_${target_underscore}=-L$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${{ matrix.target }}/21" >> $GITHUB_ENV
     - name: Configure Cargo for Android
       run: |
         linker="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.linker_prefix }}21-clang"
