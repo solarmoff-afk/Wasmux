@@ -14,7 +14,9 @@ jobs:
       with:
         submodules: recursive
     - name: Build with cross
-      uses: cross-rs/cross@v0
+      uses: houseabsolute/actions-rust-cross@v1
       with:
+        command: build
         target: aarch64-linux-android
-        args: --release -p wasmtime
+        args: "--release -p wasmtime"
+        use-cross: true
