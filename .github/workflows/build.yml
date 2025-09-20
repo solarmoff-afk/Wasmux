@@ -5,29 +5,61 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - aarch64-linux-android
+          - armv7-linux-androideabi
+          - i686-linux-android
+          - x86_64-linux-android
     steps:
     - name: Checkout Wasmtime
       uses: actions/checkout@v4
       with:
         repository: bytecodealliance/wasmtime
         submodules: recursive
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
     - name: Build with cross
       uses: houseabsolute/actions-rust-cross@v1
       with:
         command: build
-        target: aarch64-linux-android
-        args: "--release -p wasmtime"
+        target: ${{ matrix.target }}
+        args: "--release -p wasmtime --config target.${{ matrix.target }}.link='shared'"
         force-use-cross: true
-    - name: Create archive of compiled libraries
+    - name: Move and rename artifacts
       run: |
-        cd target/aarch64-linux-android/release/
-        tar -czvf wasmtime-libs.tar.gz libwasmtime.*
+        mkdir -p artifacts/${{ matrix.target }}
+        cp target/${{ matrix.target }}/release/libwasmtime.so artifacts/${{ matrix.target }}/libwasmtime.so
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
+        name: wasmtime-android-libs-${{ matrix.target }}
+        path: artifacts/${{ matrix.target }}/libwasmtime.so
+
+  combine-artifacts:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+    - name: Organize and archive
+      run: |
+        mkdir -p wasmtime-libs
+        mv artifacts/wasmtime-android-libs-aarch64-linux-android/libwasmtime.so wasmtime-libs/arm64-v8a-libwasmtime.so
+        mv artifacts/wasmtime-android-libs-armv7-linux-androideabi/libwasmtime.so wasmtime-libs/armeabi-v7a-libwasmtime.so
+        mv artifacts/wasmtime-android-libs-i686-linux-android/libwasmtime.so wasmtime-libs/x86-libwasmtime.so
+        mv artifacts/wasmtime-android-libs-x86_64-linux-android/libwasmtime.so wasmtime-libs/x86_64-libwasmtime.so
+        tar -czvf wasmtime-libs.tar.gz -C wasmtime-libs .
+    - name: Upload combined artifact
+      uses: actions/upload-artifact@v4
+      with:
         name: wasmtime-android-libs
-        path: target/aarch64-linux-android/release/wasmtime-libs.tar.gz
+        path: wasmtime-libs.tar.gz
