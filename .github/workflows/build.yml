@@ -22,3 +22,12 @@ jobs:
         target: aarch64-linux-android
         args: "--release -p wasmtime"
         force-use-cross: true
+    - name: Create archive of compiled libraries
+      run: |
+        cd target/aarch64-linux-android/release/
+        tar -czvf wasmtime-libs.tar.gz libwasmtime.*
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: wasmtime-android-libs
+        path: target/aarch64-linux-android/release/wasmtime-libs.tar.gz
