@@ -12,9 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        abi:
-          - arm64-v8a
-          - armeabi-v7a
+        include:
+          - abi: arm64-v8a
+            target: aarch64-linux-android
+            linker_prefix: aarch64-linux-android
+          - abi: armeabi-v7a
+            target: armv7-linux-androideabi
+            linker_prefix: armv7a-linux-androideabi
     steps:
     - name: Checkout Wasmtime
       uses: actions/checkout@v4
@@ -24,15 +28,25 @@ jobs:
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
       with:
-        targets: "aarch64-linux-android,armv7-linux-androideabi"
+        targets: ${{ matrix.target }}
     - name: Set up Android NDK
       uses: nttld/setup-ndk@v1
       with:
         ndk-version: r26d
-    - name: Install cargo-ndk
-      run: cargo install cargo-ndk
-    - name: Build with cargo-ndk
-      run: cargo ndk -t ${{ matrix.abi }} -o artifacts/${{ matrix.abi }} build --release -p wasmtime-c-api
+    - name: Configure Cargo for Android
+      run: |
+        mkdir -p ~/.cargo
+        cat << EOF >> ~/.cargo/config.toml
+        [target.${{ matrix.target }}]
+        linker = "\${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.linker_prefix }}21-clang"
+        ar = "\${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+        EOF
+    - name: Build with cargo
+      run: cargo build --target ${{ matrix.target }} --release -p wasmtime-c-api
+    - name: Move artifacts
+      run: |
+        mkdir -p artifacts/${{ matrix.abi }}
+        cp target/${{ matrix.target }}/release/libwasmtime.so artifacts/${{ matrix.abi }}/libwasmtime.so
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
