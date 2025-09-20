@@ -45,16 +45,11 @@ jobs:
         linker = "$linker"
         ar = "$ar"
         EOF
-    - name: Ensure cdylib in Cargo.toml
-      run: |
-        if ! grep -q 'cdylib' crates/c-api/Cargo.toml; then
-          sed -i '/\[lib\]/a crate-type = ["cdylib", "staticlib"]' crates/c-api/Cargo.toml
-        fi
     - name: Build with cargo
       run: |
         bindgen_args="--target=${{ matrix.linker_prefix }}21 --sysroot=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
         export BINDGEN_EXTRA_CLANG_ARGS="$bindgen_args"
-        cargo build --target ${{ matrix.target }} --release -p wasmtime-c-api
+        cargo build --target ${{ matrix.target }} --release -p wasmtime-c-api --features wasmtime-c-api/cdylib
     - name: Move artifacts
       run: |
         mkdir -p artifacts/${{ matrix.abi }}
